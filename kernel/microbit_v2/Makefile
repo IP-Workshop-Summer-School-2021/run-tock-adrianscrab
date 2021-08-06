@@ -25,7 +25,7 @@ flash: $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).elf
 
 .PHONY: program
 program: $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).bin
-	$(TOCKLOADER) flash $< --address 0x8000 --page-size 512
+	$(TOCKLOADER) flash --serial $< --address 0x8000 --page-size 512
 
 .PHONY: flash-app
 flash-app: $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).bin
