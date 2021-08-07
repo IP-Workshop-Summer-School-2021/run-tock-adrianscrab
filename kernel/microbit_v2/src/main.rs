@@ -114,14 +114,17 @@ pub struct MicroBit {
     systick: cortexm4::systick::SysTick,
 
     // private drivers
-    dots_display: &'static drivers::dots_display::DotsDisplay<
+    dots_display: &'static drivers::dots_display::DotsTextDisplay<
         'static,
         capsules::led_matrix::LedMatrixLed<
             'static,
             nrf52::gpio::GPIOPin<'static>,
             capsules::virtual_alarm::VirtualMuxAlarm<'static, nrf52833::rtc::Rtc<'static>>,
         >,
+        capsules::virtual_alarm::VirtualMuxAlarm<'static, nrf52::rtc::Rtc<'static>>,
     >,
+    // debounced_button: &'static drivers::debounded_button::DebouncedButton<'static, nrf52::gpio::GPIOPin<'static>>,
+    // sound_something: &'static drivers::sound_something::SoundSomething<'static>,
 }
 
 impl SyscallDriverLookup for MicroBit {
@@ -148,6 +151,7 @@ impl SyscallDriverLookup for MicroBit {
 
             //private drivers
             drivers::dots_display::DRIVER_NUM => f(Some(self.dots_display)),
+            // drivers::sound_something::DRIVER_NUM => f(Some(self.sound_something)),
 
             _ => f(None),
         }
@@ -625,17 +629,42 @@ pub unsafe fn main() {
         .finalize(components::rr_component_helper!(NUM_PROCS));
 
     // private drivers
+    let virtual_alarm_dots = static_init!(
+        capsules::virtual_alarm::VirtualMuxAlarm<'static, nrf52833::rtc::Rtc>,
+        capsules::virtual_alarm::VirtualMuxAlarm::new(mux_alarm)
+    );
+
+    let appdata = board_kernel.create_grant(
+        drivers::dots_display::DRIVER_NUM,
+        &memory_allocation_capability
+    );
+
     let dots_display = static_init!(
-        drivers::dots_display::DotsDisplay<
+        drivers::dots_display::DotsTextDisplay<
             'static,
             capsules::led_matrix::LedMatrixLed<
                 'static,
                 nrf52::gpio::GPIOPin<'static>,
                 capsules::virtual_alarm::VirtualMuxAlarm<'static, nrf52833::rtc::Rtc<'static>>,
             >,
+            capsules::virtual_alarm::VirtualMuxAlarm<'static, nrf52::rtc::Rtc<'static>>,
         >,
-        drivers::dots_display::DotsDisplay::new(leds)
+        drivers::dots_display::DotsTextDisplay::new(leds, virtual_alarm_dots, appdata)
     );
+
+    // connect the alarm callback
+    virtual_alarm_dots.set_alarm_client(dots_display);
+    // dots_display.set_timeout();
+
+    // let button_pins = static_init!(
+    //     [&'static sam4l::gpio::GPIOPin; 1],
+    //     [&sam4l::gpio::PA[16]]);
+    // let button = static_init!(
+    //     drivers::button::Button<'static>,
+    //     drivers::button::Button::new(button_pins, board_kernel.create_grant(&grant_cap)));
+    // for btn in button_pins.iter() {
+    //     btn.set_client(button);
+    // }
 
 
     let microbit = MicroBit {
@@ -664,6 +693,7 @@ pub unsafe fn main() {
 
         // private drivers
         dots_display,
+        // debounced_button,
     };
 
     let chip = static_init!(

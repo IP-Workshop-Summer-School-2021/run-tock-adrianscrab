@@ -21,6 +21,9 @@ int main(void) {
   // example_driver_action ();
   // display_digit(display_digit);
 
+
+  //! cod blana
+  /*
   int err;
 
   // subscribe la butoane cu functia `button_callback` care 
@@ -37,6 +40,10 @@ int main(void) {
   for (int i = 0; i < count; i++) {
     button_enable_interrupt(i);
   }
+  */
+  //! end cod blana
+
+  display_text("987654321");
   
   return 0;
 }
